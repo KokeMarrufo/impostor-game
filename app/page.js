@@ -1,66 +1,84 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useGame } from '@/context/GameContext';
 
 export default function Home() {
+  const [name, setName] = useState('');
+  const [roomCode, setRoomCode] = useState('');
+  const { createRoom, joinRoom } = useGame();
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  const handleCreate = async () => {
+    if (!name.trim()) return alert('Please enter your name');
+    setLoading(true);
+    const { success, code } = await createRoom(name);
+    setLoading(false);
+    if (success) router.push(`/room/${code}`);
+  };
+
+  const handleJoin = async () => {
+    if (!name.trim() || !roomCode.trim()) return alert('Please enter name and room code');
+    setLoading(true);
+    const { success, error } = await joinRoom(roomCode.toUpperCase(), name);
+    setLoading(false);
+    if (success) router.push(`/room/${roomCode.toUpperCase()}`);
+    else alert(error || 'Failed to join room');
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.js file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
+    <main className="container">
+      <div className="card" style={{ textAlign: 'center', maxWidth: '400px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem', background: 'linear-gradient(to right, var(--primary), var(--secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          Impostor
+        </h1>
+        <p style={{ marginBottom: '2rem', color: '#94a3b8' }}>
+          Find the impostor among your friends.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <input
+            type="text"
+            placeholder="Your Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={12}
+          />
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+            <button
+              className="btn btn-primary"
+              onClick={handleCreate}
+              disabled={loading}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+              {loading ? 'Creating...' : 'Create New Room'}
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1rem 0' }}>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
+              <span style={{ color: '#64748b', fontSize: '0.875rem' }}>OR</span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }}></div>
+            </div>
+
+            <input
+              type="text"
+              placeholder="Room Code"
+              value={roomCode}
+              onChange={(e) => setRoomCode(e.target.value)}
+              maxLength={4}
+              style={{ textTransform: 'uppercase', textAlign: 'center', letterSpacing: '2px' }}
             />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <button
+              className="btn btn-secondary"
+              onClick={handleJoin}
+              disabled={loading}
+            >
+              {loading ? 'Joining...' : 'Join Room'}
+            </button>
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
