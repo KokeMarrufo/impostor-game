@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Impostor - Social Deduction Game 🎭
 
-## Getting Started
+A real-time multiplayer web game where players must identify the impostor among them through discussion and voting.
 
-First, run the development server:
+## 🎮 How to Play
+
+1. **Create a Room**: One player creates a room and becomes the admin
+2. **Join**: Other players join using the room code (minimum 3 players)
+3. **Configure**: Admin sets the number of rounds and adds secret words
+4. **Play**: Each round, one random player is the impostor
+   - Most players see the secret word
+   - The impostor sees "IMPOSTOR" instead
+5. **Discuss**: Players discuss (via video call or in-person) to figure out who doesn't know the word
+6. **Vote**: All players vote for who they think is the impostor
+7. **Score**: If the impostor is caught, others get a point. If not, the impostor gets a point
+
+## 🚀 Tech Stack
+
+- **Frontend**: Next.js 15 (React)
+- **Real-time**: Socket.io
+- **Backend**: Node.js + Express
+- **Styling**: Vanilla CSS
+
+## 📦 Installation
 
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build for production
+npm run build
+npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🌐 Features
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+- ✅ Real-time synchronization across all players
+- ✅ Responsive mobile-first design
+- ✅ Beautiful dark theme with smooth animations
+- ✅ Card reveal with 3D flip animation
+- ✅ Automatic role assignment
+- ✅ Voting system
+- ✅ Score tracking across rounds
+- ✅ Admin controls for game management
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🎯 Game States
 
-## Learn More
+1. **Lobby** - Players join and admin configures game
+2. **Playing** - Players reveal their cards
+3. **Voting** - Players vote for the impostor
+4. **Round End** - Results shown and scores updated
+5. **Game End** - Final winner announced
 
-To learn more about Next.js, take a look at the following resources:
+## 🔧 Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+No environment variables required for basic functionality.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📱 Device Support
 
-## Deploy on Vercel
+- Desktop browsers (Chrome, Firefox, Safari, Edge)
+- Mobile browsers (iOS Safari, Chrome Mobile)
+- Tablet devices
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📄 License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
+
+## 🤝 Contributing
+
+Feel free to open issues or submit pull requests!
+
+---
+
+Made with ❤️ for game nights with friends

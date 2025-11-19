@@ -1,0 +1,11 @@
+{
+    "watch": [
+        "server.js"
+    ],
+    "ignore": [
+        ".next",
+        "node_modules",
+        "*.md",
+        ".git"
+    ]
+}
