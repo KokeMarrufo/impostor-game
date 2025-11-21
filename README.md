@@ -45,6 +45,7 @@ npm start
 - ✅ Voting system
 - ✅ Score tracking across rounds
 - ✅ Admin controls for game management
+- ✨ **AI Word Generation** - Generate themed secret words using Google Gemini (words hidden from everyone!)
 
 ## 🎯 Game States
 
@@ -56,7 +57,17 @@ npm start
 
 ## 🔧 Environment Variables
 
-No environment variables required for basic functionality.
+### Optional: AI Word Generation
+
+To enable AI-powered word generation with Google Gemini:
+
+1. Get a free API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Create a `.env` file in the project root:
+   ```bash
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+**Note**: The game works perfectly fine without AI - you can manually add words. AI is just a convenient bonus feature!
 
 ## 📱 Device Support
 

@@ -59,8 +59,14 @@ export const GameProvider = ({ children }) => {
         socket.emit('next_round', { code });
     };
 
+    const generateAIWords = (code, theme, count) => {
+        return new Promise((resolve) => {
+            socket.emit('generate_ai_words', { code, theme, count }, resolve);
+        });
+    };
+
     return (
-        <GameContext.Provider value={{ gameState, createRoom, joinRoom, updateSettings, startGame, startVoting, submitVote, nextRound, socket, playerId }}>
+        <GameContext.Provider value={{ gameState, createRoom, joinRoom, updateSettings, generateAIWords, startGame, startVoting, submitVote, nextRound, socket, playerId }}>
             {children}
         </GameContext.Provider>
     );

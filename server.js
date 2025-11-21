@@ -1,13 +1,28 @@
+require('dotenv').config();
+
 const { createServer } = require('http');
 const next = require('next');
 const socketIo = require('socket.io');
 const express = require('express');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
 const port = process.env.PORT || 3000;
+
+// Initialize Gemini (optional - only needed for AI word generation)
+const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    apiVersion: 'v1'
+}) : null;
+
+if (genAI) {
+    console.log('✨ Gemini API configured - AI word generation enabled!');
+} else {
+    console.log('⚠️  Gemini API key not found - AI word generation disabled (add GEMINI_API_KEY to .env)');
+}
 
 app.prepare().then(() => {
     const server = express();
@@ -64,6 +79,59 @@ app.prepare().then(() => {
         };
     };
 
+    const generateWordsWithAI = async (theme, count) => {
+        if (!process.env.GEMINI_API_KEY) {
+            throw new Error('Gemini API key not configured');
+        }
+
+        try {
+            const apiKey = process.env.GEMINI_API_KEY;
+            const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            const prompt = `Generate ${count} simple, common words related to the theme: "${theme}". 
+These words are for a social deduction game where players must identify who doesn't know the secret word.
+Return ONLY a JSON array of ${count} words as strings, nothing else. No explanations, no formatting, just the JSON array.
+Example format: ["word1", "word2", "word3"]`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: prompt
+                        }]
+                    }]
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
+            }
+
+            const data = await response.json();
+            const text = data.candidates[0].content.parts[0].text.trim();
+
+            // Remove markdown code blocks if present
+            let cleanText = text;
+            if (text.startsWith('```json')) {
+                cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            } else if (text.startsWith('```')) {
+                cleanText = text.replace(/```\n?/g, '').trim();
+            }
+
+            // Parse the JSON array from the response
+            const words = JSON.parse(cleanText);
+            return words.slice(0, count); // Ensure we only return the requested count
+        } catch (error) {
+            console.error('AI word generation error:', error);
+            throw new Error('Failed to generate words with AI');
+        }
+    };
+
     // Socket.io Logic
     io.on('connection', (socket) => {
         console.log('Client connected:', socket.id);
@@ -101,6 +169,27 @@ app.prepare().then(() => {
 
             room.settings = { ...room.settings, ...settings };
             io.to(code).emit('room_update', room);
+        });
+
+        socket.on('generate_ai_words', async ({ code, theme, count }, callback) => {
+            const room = rooms.get(code);
+            if (!room) return callback({ success: false, error: 'Room not found' });
+            if (room.adminId !== socket.id) return callback({ success: false, error: 'Only admin can generate words' });
+
+            if (!process.env.GEMINI_API_KEY) {
+                return callback({ success: false, error: 'AI word generation not configured. Add GEMINI_API_KEY to environment.' });
+            }
+
+            try {
+                const words = await generateWordsWithAI(theme, count);
+                room.settings.words = words;
+                room.settings.aiGenerated = true; // Mark as AI-generated
+                room.settings.theme = theme; // Store theme for reference
+                callback({ success: true, count: words.length });
+                io.to(code).emit('room_update', room);
+            } catch (error) {
+                callback({ success: false, error: error.message });
+            }
         });
 
         socket.on('start_game', ({ code }) => {

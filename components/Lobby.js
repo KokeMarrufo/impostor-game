@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { useGame } from '@/context/GameContext';
 
 export default function Lobby({ code }) {
-    const { gameState, playerId, updateSettings, startGame } = useGame();
+    const { gameState, playerId, updateSettings, generateAIWords, startGame } = useGame();
     const { players, adminId, settings } = gameState;
     const isAdmin = playerId === adminId;
     const [newWord, setNewWord] = useState('');
+    const [aiTheme, setAiTheme] = useState('');
+    const [aiGenerating, setAiGenerating] = useState(false);
 
     const copyCode = () => {
         navigator.clipboard.writeText(code);
@@ -28,6 +30,28 @@ export default function Lobby({ code }) {
     const handleRoundsChange = (e) => {
         const rounds = parseInt(e.target.value) || 1;
         updateSettings(code, { rounds });
+    };
+
+    const handleGenerateAI = async () => {
+        if (!aiTheme.trim()) {
+            alert('Please enter a theme for AI word generation');
+            return;
+        }
+
+        setAiGenerating(true);
+        try {
+            const result = await generateAIWords(code, aiTheme.trim(), settings.rounds);
+            if (result.success) {
+                alert(`✨ AI generated ${result.count} words based on "${aiTheme}"!`);
+                setAiTheme('');
+            } else {
+                alert(`Error: ${result.error}`);
+            }
+        } catch (error) {
+            alert('Failed to generate words. Please try again.');
+        } finally {
+            setAiGenerating(false);
+        }
     };
 
     const canStart = settings.words.length >= settings.rounds && players.length >= 3;
@@ -111,19 +135,66 @@ export default function Lobby({ code }) {
                     <div style={{ marginBottom: '1rem' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#94a3b8' }}>
                             Secret Words ({settings.words.length}/{settings.rounds})
+                            {settings.aiGenerated && <span style={{ marginLeft: '0.5rem', color: 'var(--primary)' }}>✨ AI Generated</span>}
                         </label>
 
                         {isAdmin && (
-                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                                <input
-                                    type="text"
-                                    placeholder="Enter a secret word"
-                                    value={newWord}
-                                    onChange={(e) => setNewWord(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddWord()}
-                                />
-                                <button className="btn btn-secondary" style={{ width: 'auto' }} onClick={handleAddWord}>Add</button>
-                            </div>
+                            <>
+                                {/* AI Word Generation */}
+                                <div style={{ marginBottom: '1rem', padding: '1rem', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '8px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                        <span style={{ fontSize: '1rem' }}>✨</span>
+                                        <strong style={{ fontSize: '0.875rem' }}>AI Word Generation</strong>
+                                    </div>
+                                    <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.75rem' }}>
+                                        Words will be hidden from everyone, including you!
+                                    </p>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="Enter theme (e.g., 'travel', 'food', 'movies')"
+                                            value={aiTheme}
+                                            onChange={(e) => setAiTheme(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleGenerateAI()}
+                                            disabled={aiGenerating}
+                                        />
+                                        <button
+                                            className="btn btn-primary"
+                                            style={{ width: 'auto', whiteSpace: 'nowrap' }}
+                                            onClick={handleGenerateAI}
+                                            disabled={aiGenerating}
+                                        >
+                                            {aiGenerating ? 'Generating...' : 'Generate'}
+                                        </button>
+                                    </div>
+                                    {settings.aiGenerated && (
+                                        <button
+                                            className="btn btn-secondary"
+                                            style={{ width: '100%', marginTop: '0.5rem', fontSize: '0.75rem' }}
+                                            onClick={() => updateSettings(code, { words: [], aiGenerated: false, theme: null })}
+                                        >
+                                            Clear & Generate New Words
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Manual Word Input */}
+                                <div style={{ marginBottom: '0.5rem' }}>
+                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
+                                        Or add words manually:
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="Enter a secret word"
+                                            value={newWord}
+                                            onChange={(e) => setNewWord(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleAddWord()}
+                                        />
+                                        <button className="btn btn-secondary" style={{ width: 'auto' }} onClick={handleAddWord}>Add</button>
+                                    </div>
+                                </div>
+                            </>
                         )}
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -140,8 +211,8 @@ export default function Lobby({ code }) {
                                         gap: '0.5rem'
                                     }}
                                 >
-                                    {isAdmin ? word : '???'}
-                                    {isAdmin && (
+                                    {settings.aiGenerated ? '???' : (isAdmin ? word : '???')}
+                                    {isAdmin && !settings.aiGenerated && (
                                         <span
                                             style={{ cursor: 'pointer', color: 'var(--error)' }}
                                             onClick={() => handleRemoveWord(index)}
