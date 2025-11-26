@@ -141,7 +141,7 @@ Example format: ["word1", "word2", "word3"]`;
             rooms.set(code, {
                 code,
                 adminId: socket.id,
-                players: [{ id: socket.id, name, score: 0, isImpostor: false, word: null }],
+                players: [{ id: socket.id, name, score: 0, isImpostor: false, word: null, connected: true }],
                 settings: { rounds: 3, words: [] },
                 state: 'LOBBY',
                 currentRound: 0,
@@ -156,8 +156,38 @@ Example format: ["word1", "word2", "word3"]`;
             const room = rooms.get(code);
             if (!room) return callback({ success: false, error: 'Room not found' });
 
-            room.players.push({ id: socket.id, name, score: 0, isImpostor: false, word: null });
+            room.players.push({ id: socket.id, name, score: 0, isImpostor: false, word: null, connected: true });
             socket.join(code);
+            callback({ success: true, room });
+            io.to(code).emit('room_update', room);
+        });
+
+        socket.on('check_room', ({ code }, callback) => {
+            const room = rooms.get(code);
+            if (!room) return callback({ exists: false });
+            callback({
+                exists: true,
+                state: room.state,
+                players: room.players
+            });
+        });
+
+        socket.on('rejoin_game', ({ code, targetPlayerId }, callback) => {
+            const room = rooms.get(code);
+            if (!room) return callback({ success: false, error: 'Room not found' });
+
+            const playerIndex = room.players.findIndex(p => p.id === targetPlayerId);
+            if (playerIndex === -1) return callback({ success: false, error: 'Player not found' });
+
+            const player = room.players[playerIndex];
+            if (player.connected) return callback({ success: false, error: 'Player already connected' });
+
+            // Update player ID to new socket ID
+            player.id = socket.id;
+            player.connected = true;
+
+            socket.join(code);
+
             callback({ success: true, room });
             io.to(code).emit('room_update', room);
         });
@@ -255,19 +285,28 @@ Example format: ["word1", "word2", "word3"]`;
 
         socket.on('disconnect', () => {
             console.log('Client disconnected:', socket.id);
-            // Handle disconnect: remove player from room
+            // Handle disconnect: remove player from room OR mark as disconnected
             rooms.forEach((room, code) => {
                 const index = room.players.findIndex(p => p.id === socket.id);
                 if (index !== -1) {
-                    room.players.splice(index, 1);
-                    if (room.players.length === 0) {
-                        rooms.delete(code);
-                    } else {
-                        // If admin left, assign new admin
-                        if (room.adminId === socket.id) {
-                            room.adminId = room.players[0].id;
+                    if (room.state === 'LOBBY' || room.state === 'GAME_END') {
+                        // In Lobby or Game End, remove completely
+                        room.players.splice(index, 1);
+                        if (room.players.length === 0) {
+                            rooms.delete(code);
+                        } else {
+                            if (room.adminId === socket.id) {
+                                room.adminId = room.players[0].id;
+                            }
+                            io.to(code).emit('room_update', room);
                         }
+                    } else {
+                        // In Game, mark as disconnected
+                        room.players[index].connected = false;
                         io.to(code).emit('room_update', room);
+
+                        // Optional: If everyone is disconnected, maybe clean up after a timeout?
+                        // For now, we'll leave the room alive until restart.
                     }
                 }
             });

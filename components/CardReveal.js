@@ -49,7 +49,7 @@ export default function CardReveal() {
                         width: '100%',
                         height: '100%',
                         backfaceVisibility: 'hidden',
-                        background: player.isImpostor ? '#ef4444' : 'var(--surface)',
+                        background: 'var(--surface)',
                         borderRadius: '20px',
                         transform: 'rotateY(180deg)',
                         display: 'flex',

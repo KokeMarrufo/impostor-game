@@ -39,6 +39,18 @@ export const GameProvider = ({ children }) => {
         });
     };
 
+    const checkRoom = (code) => {
+        return new Promise((resolve) => {
+            socket.emit('check_room', { code }, resolve);
+        });
+    };
+
+    const rejoinGame = (code, targetPlayerId) => {
+        return new Promise((resolve) => {
+            socket.emit('rejoin_game', { code, targetPlayerId }, resolve);
+        });
+    };
+
     const updateSettings = (code, settings) => {
         socket.emit('update_settings', { code, settings });
     };
@@ -66,7 +78,7 @@ export const GameProvider = ({ children }) => {
     };
 
     return (
-        <GameContext.Provider value={{ gameState, createRoom, joinRoom, updateSettings, generateAIWords, startGame, startVoting, submitVote, nextRound, socket, playerId }}>
+        <GameContext.Provider value={{ gameState, createRoom, joinRoom, checkRoom, rejoinGame, updateSettings, generateAIWords, startGame, startVoting, submitVote, nextRound, socket, playerId }}>
             {children}
         </GameContext.Provider>
     );
