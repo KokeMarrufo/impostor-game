@@ -77,8 +77,20 @@ export const GameProvider = ({ children }) => {
         });
     };
 
+    const endGame = (code) => {
+        socket.emit('end_game', { code });
+    };
+
+    const restartGame = (code) => {
+        socket.emit('restart_game', { code });
+    };
+
+    const startRandomGame = (code) => {
+        socket.emit('start_random_game', { code });
+    };
+
     return (
-        <GameContext.Provider value={{ gameState, createRoom, joinRoom, checkRoom, rejoinGame, updateSettings, generateAIWords, startGame, startVoting, submitVote, nextRound, socket, playerId }}>
+        <GameContext.Provider value={{ gameState, createRoom, joinRoom, checkRoom, rejoinGame, updateSettings, generateAIWords, startGame, startRandomGame, startVoting, submitVote, nextRound, endGame, restartGame, socket, playerId }}>
             {children}
         </GameContext.Provider>
     );

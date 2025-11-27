@@ -3,7 +3,7 @@ import { useGame } from '@/context/GameContext';
 import { useRouter } from 'next/navigation';
 
 export default function GameResult() {
-    const { gameState } = useGame();
+    const { gameState, restartGame, playerId } = useGame();
     const { players } = gameState;
     const router = useRouter();
 
@@ -47,6 +47,16 @@ export default function GameResult() {
             <button className="btn btn-secondary" onClick={() => router.push('/')}>
                 Back to Home
             </button>
+
+            {gameState.adminId === playerId && (
+                <button
+                    className="btn btn-primary"
+                    onClick={() => restartGame(gameState.code)}
+                    style={{ marginTop: '1rem', width: '100%' }}
+                >
+                    Restart Game
+                </button>
+            )}
         </div>
     );
 }

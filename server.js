@@ -5,6 +5,8 @@ const next = require('next');
 const socketIo = require('socket.io');
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const fs = require('fs');
+const path = require('path');
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -132,6 +134,34 @@ Example format: ["word1", "word2", "word3"]`;
         }
     };
 
+    const transferAdminToNextEligible = (room) => {
+        // Find connected players excluding current admin
+        const eligiblePlayers = room.players
+            .filter(p => p.connected && p.id !== room.adminId)
+            .sort((a, b) => a.connectedAt - b.connectedAt); // Oldest first
+
+        if (eligiblePlayers.length > 0) {
+            room.adminId = eligiblePlayers[0].id;
+            return true;
+        }
+        return false; // No eligible players
+    };
+
+    const getRandomWords = (count) => {
+        try {
+            const filePath = path.join(__dirname, 'base_aleatoria.json');
+            const fileContent = fs.readFileSync(filePath, 'utf-8');
+            const allWords = JSON.parse(fileContent);
+
+            // Shuffle and select N unique words
+            const shuffled = [...allWords].sort(() => Math.random() - 0.5);
+            return shuffled.slice(0, Math.min(count, allWords.length));
+        } catch (error) {
+            console.error('Error reading base_aleatoria.json:', error);
+            throw new Error('Failed to load random words');
+        }
+    };
+
     // Socket.io Logic
     io.on('connection', (socket) => {
         console.log('Client connected:', socket.id);
@@ -141,7 +171,7 @@ Example format: ["word1", "word2", "word3"]`;
             rooms.set(code, {
                 code,
                 adminId: socket.id,
-                players: [{ id: socket.id, name, score: 0, isImpostor: false, word: null, connected: true }],
+                players: [{ id: socket.id, name, score: 0, isImpostor: false, word: null, connected: true, connectedAt: Date.now() }],
                 settings: { rounds: 3, words: [] },
                 state: 'LOBBY',
                 currentRound: 0,
@@ -156,7 +186,7 @@ Example format: ["word1", "word2", "word3"]`;
             const room = rooms.get(code);
             if (!room) return callback({ success: false, error: 'Room not found' });
 
-            room.players.push({ id: socket.id, name, score: 0, isImpostor: false, word: null, connected: true });
+            room.players.push({ id: socket.id, name, score: 0, isImpostor: false, word: null, connected: true, connectedAt: Date.now() });
             socket.join(code);
             callback({ success: true, room });
             io.to(code).emit('room_update', room);
@@ -182,11 +212,20 @@ Example format: ["word1", "word2", "word3"]`;
             const player = room.players[playerIndex];
             if (player.connected) return callback({ success: false, error: 'Player already connected' });
 
+            // Check if ALL players are currently disconnected (session abandonment)
+            const allDisconnected = room.players.every(p => !p.connected);
+
             // Update player ID to new socket ID
             player.id = socket.id;
             player.connected = true;
 
             socket.join(code);
+
+            // If session was abandoned, grant admin to first reconnecting player
+            if (allDisconnected) {
+                room.adminId = socket.id;
+                console.log(`Session abandoned - Admin granted to first reconnecting player ${socket.id} in room ${code}`);
+            }
 
             callback({ success: true, room });
             io.to(code).emit('room_update', room);
@@ -240,6 +279,32 @@ Example format: ["word1", "word2", "word3"]`;
             io.to(code).emit('room_update', room);
         });
 
+        socket.on('start_random_game', ({ code }) => {
+            const room = rooms.get(code);
+            if (!room) return;
+            if (room.adminId !== socket.id) return;
+
+            try {
+                // Get random words based on number of rounds
+                const randomWords = getRandomWords(room.settings.rounds);
+
+                // Update room settings with random words
+                room.settings.words = randomWords;
+                room.settings.aiGenerated = false;
+                room.settings.theme = null;
+
+                // Start the game
+                room.state = 'PLAYING';
+                room.currentRound = 1;
+                room.votes = {};
+                assignRoles(room);
+
+                io.to(code).emit('room_update', room);
+            } catch (error) {
+                console.error('Error starting random game:', error);
+            }
+        });
+
         socket.on('start_voting', ({ code }) => {
             const room = rooms.get(code);
             if (!room) return;
@@ -283,26 +348,70 @@ Example format: ["word1", "word2", "word3"]`;
             io.to(code).emit('room_update', room);
         });
 
+        socket.on('end_game', ({ code }) => {
+            const room = rooms.get(code);
+            if (!room) return;
+            if (room.adminId !== socket.id) return;
+
+            room.state = 'GAME_END';
+            io.to(code).emit('room_update', room);
+        });
+
+        socket.on('restart_game', ({ code }) => {
+            const room = rooms.get(code);
+            if (!room) return;
+            if (room.adminId !== socket.id) return;
+
+            // Reset room state
+            room.state = 'LOBBY';
+            room.currentRound = 0;
+            room.votes = {};
+            room.lastRoundResult = null;
+
+            // Reset player scores and roles
+            room.players.forEach(p => {
+                p.score = 0;
+                p.isImpostor = false;
+                p.word = null;
+            });
+
+            io.to(code).emit('room_update', room);
+        });
+
         socket.on('disconnect', () => {
             console.log('Client disconnected:', socket.id);
             // Handle disconnect: remove player from room OR mark as disconnected
             rooms.forEach((room, code) => {
                 const index = room.players.findIndex(p => p.id === socket.id);
                 if (index !== -1) {
+                    const wasAdmin = room.adminId === socket.id;
+
                     if (room.state === 'LOBBY' || room.state === 'GAME_END') {
                         // In Lobby or Game End, remove completely
                         room.players.splice(index, 1);
                         if (room.players.length === 0) {
                             rooms.delete(code);
                         } else {
-                            if (room.adminId === socket.id) {
-                                room.adminId = room.players[0].id;
+                            // Transfer admin if disconnected player was admin
+                            if (wasAdmin) {
+                                transferAdminToNextEligible(room);
                             }
                             io.to(code).emit('room_update', room);
                         }
                     } else {
                         // In Game, mark as disconnected
                         room.players[index].connected = false;
+
+                        // Transfer admin if disconnected player was admin
+                        if (wasAdmin) {
+                            const transferred = transferAdminToNextEligible(room);
+                            if (transferred) {
+                                console.log(`Admin transferred from ${socket.id} to ${room.adminId} in room ${code}`);
+                            } else {
+                                console.log(`No eligible players to transfer admin in room ${code}`);
+                            }
+                        }
+
                         io.to(code).emit('room_update', room);
 
                         // Optional: If everyone is disconnected, maybe clean up after a timeout?

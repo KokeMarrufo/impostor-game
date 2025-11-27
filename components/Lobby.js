@@ -3,16 +3,24 @@ import { useState } from 'react';
 import { useGame } from '@/context/GameContext';
 
 export default function Lobby({ code }) {
-    const { gameState, playerId, updateSettings, generateAIWords, startGame } = useGame();
+    const { gameState, playerId, updateSettings, generateAIWords, startGame, startRandomGame } = useGame();
     const { players, adminId, settings } = gameState;
     const isAdmin = playerId === adminId;
     const [newWord, setNewWord] = useState('');
     const [aiTheme, setAiTheme] = useState('');
     const [aiGenerating, setAiGenerating] = useState(false);
+    const [linkCopied, setLinkCopied] = useState(false);
 
     const copyCode = () => {
         navigator.clipboard.writeText(code);
         alert('Room code copied!');
+    };
+
+    const copyRoomLink = () => {
+        const roomUrl = `${window.location.origin}/room/${code}`;
+        navigator.clipboard.writeText(roomUrl);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
     };
 
     const handleAddWord = () => {
@@ -74,6 +82,31 @@ export default function Lobby({ code }) {
                     {code}
                 </div>
                 <p style={{ fontSize: '0.75rem', color: '#64748b' }}>Tap code to copy</p>
+
+                {/* Share Room Link */}
+                <div
+                    onClick={copyRoomLink}
+                    style={{
+                        marginTop: '1rem',
+                        padding: '0.75rem',
+                        background: 'var(--surface-hover)',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        transition: 'all 0.2s',
+                        border: '1px solid transparent'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                >
+                    <span style={{ fontSize: '1.2rem' }}>🔗</span>
+                    <span style={{ fontSize: '0.875rem', color: '#94a3b8' }}>
+                        {linkCopied ? '✓ Link copied!' : 'Click to copy the Room link to share'}
+                    </span>
+                </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
@@ -119,14 +152,34 @@ export default function Lobby({ code }) {
                             Number of Rounds
                         </label>
                         {isAdmin ? (
-                            <input
-                                type="number"
-                                min="1"
-                                max="10"
-                                value={settings.rounds}
-                                onChange={handleRoundsChange}
-                                style={{ width: '100px' }}
-                            />
+                            <>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="10"
+                                    value={settings.rounds}
+                                    onChange={handleRoundsChange}
+                                    style={{ width: '100px' }}
+                                />
+                                <button
+                                    className="btn"
+                                    onClick={() => startRandomGame(code)}
+                                    style={{
+                                        marginTop: '0.5rem',
+                                        background: '#10b981',
+                                        color: 'white',
+                                        fontSize: '0.875rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        justifyContent: 'center'
+                                    }}
+                                    disabled={players.length < 3}
+                                >
+                                    <span>🎲</span>
+                                    Start random game
+                                </button>
+                            </>
                         ) : (
                             <div style={{ fontSize: '1.2rem', fontWeight: '600' }}>{settings.rounds}</div>
                         )}

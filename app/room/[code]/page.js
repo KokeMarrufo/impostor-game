@@ -9,7 +9,7 @@ import GameResult from '@/components/GameResult';
 
 export default function Room({ params }) {
     const { code } = use(params);
-    const { gameState, socket, checkRoom, joinRoom, rejoinGame } = useGame();
+    const { gameState, socket, checkRoom, joinRoom, rejoinGame, playerId, endGame, restartGame } = useGame();
     const [status, setStatus] = useState('loading'); // loading, join, rejoin, error
     const [roomInfo, setRoomInfo] = useState(null);
     const [name, setName] = useState('');
@@ -164,7 +164,37 @@ export default function Room({ params }) {
             {gameState.state === 'VOTING' && <Voting />}
             {gameState.state === 'ROUND_END' && <RoundResult />}
             {gameState.state === 'GAME_END' && <GameResult />}
+
+            {gameState.adminId === playerId &&
+                ['PLAYING', 'VOTING', 'ROUND_END'].includes(gameState.state) && (
+                    <div style={{ marginTop: '2rem', borderTop: '1px solid var(--surface-hover)', paddingTop: '1rem', width: '100%', textAlign: 'center' }}>
+                        <p style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '0.5rem' }}>Admin Controls</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+                            <button
+                                className="btn"
+                                style={{ background: 'var(--error)', color: 'white', fontSize: '0.875rem', padding: '8px 16px', width: '200px' }}
+                                onClick={() => {
+                                    if (confirm('Are you sure you want to end the game prematurely?')) {
+                                        endGame(code);
+                                    }
+                                }}
+                            >
+                                End Game
+                            </button>
+                            <button
+                                className="btn"
+                                style={{ background: '#8b5cf6', color: 'white', fontSize: '0.875rem', padding: '8px 16px', width: '200px' }}
+                                onClick={() => {
+                                    if (confirm('Are you sure you want to RESTART the game? This will clear all scores and return to lobby.')) {
+                                        restartGame(code);
+                                    }
+                                }}
+                            >
+                                Restart Game
+                            </button>
+                        </div>
+                    </div>
+                )}
         </main>
     );
 }
-
