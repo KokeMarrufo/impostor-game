@@ -1,0 +1,177 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.werewolfBackground {
+    background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #7f1d1d 100%);
+    animation: pulseRed 2s ease-in-out infinite;
+}
+
+.villagerBackground {
+    background: linear-gradient(135deg, #1f2937 0%, #374151 50%, #1f2937 100%);
+}
+
+.loveBackground {
+    background: linear-gradient(135deg, #831843 0%, #be185d 50%, #831843 100%);
+    animation: pulsePink 2s ease-in-out infinite;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pulseRed {
+
+    0%,
+    100% {
+        background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #7f1d1d 100%);
+    }
+
+    50% {
+        background: linear-gradient(135deg, #991b1b 0%, #b91c1c 50%, #991b1b 100%);
+    }
+}
+
+@keyframes pulsePink {
+
+    0%,
+    100% {
+        background: linear-gradient(135deg, #831843 0%, #be185d 50%, #831843 100%);
+    }
+
+    50% {
+        background: linear-gradient(135deg, #be185d 0%, #db2777 50%, #be185d 100%);
+    }
+}
+
+.container {
+    text-align: center;
+    padding: 2rem;
+    max-width: 500px;
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.icon {
+    font-size: 5rem;
+    margin-bottom: 1.5rem;
+    animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 2rem;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.roleReveal {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.roleLabel {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.roleName {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: white;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    margin: 0;
+}
+
+.reason {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 1.5rem;
+}
+
+.werewolfMessage {
+    background: rgba(220, 38, 38, 0.3);
+    border: 2px solid rgba(220, 38, 38, 0.5);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.werewolfMessage p {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: white;
+    margin: 0.5rem 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.hint {
+    font-size: 0.9rem !important;
+    font-weight: 400 !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    margin-top: 0.5rem !important;
+}
+
+@media (max-width: 640px) {
+    .container {
+        padding: 1.5rem;
+    }
+
+    .icon {
+        font-size: 4rem;
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .roleName {
+        font-size: 2rem;
+    }
+}

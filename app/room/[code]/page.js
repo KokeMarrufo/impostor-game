@@ -6,10 +6,33 @@ import CardReveal from '@/components/CardReveal';
 import Voting from '@/components/Voting';
 import RoundResult from '@/components/RoundResult';
 import GameResult from '@/components/GameResult';
+// Werewolf components
+import RoleCard from '@/components/werewolf/RoleCard';
+import NightScreen from '@/components/werewolf/NightScreen';
+import VotingPanel from '@/components/werewolf/VotingPanel';
+import DeathScreen from '@/components/werewolf/DeathScreen';
+import HunterRevenge from '@/components/werewolf/HunterRevenge';
+import NarratorPanel from '@/components/werewolf/NarratorPanel';
+import WerewolfGameResult from '@/components/werewolf/GameResult';
 
 export default function Room({ params }) {
     const { code } = use(params);
-    const { gameState, socket, checkRoom, joinRoom, rejoinGame, playerId, endGame, restartGame } = useGame();
+    const {
+        gameState,
+        socket,
+        checkRoom,
+        joinRoom,
+        rejoinGame,
+        playerId,
+        endGame,
+        restartGame,
+        // Werewolf state
+        myRole,
+        nightDeaths,
+        hunterRevengeActive,
+        votedOutData,
+        gameEndedData
+    } = useGame();
     const [status, setStatus] = useState('loading'); // loading, join, rejoin, error
     const [roomInfo, setRoomInfo] = useState(null);
     const [name, setName] = useState('');
@@ -157,6 +180,68 @@ export default function Room({ params }) {
     }
 
     // status === 'playing' (gameState is present)
+    const isWerewolfMode = gameState?.gameMode === 'LOBO';
+    const isAdmin = gameState?.adminId === playerId;
+
+    // Werewolf mode rendering
+    if (isWerewolfMode) {
+        const currentPhase = gameState.currentPhase;
+        const myPlayer = gameState.players?.find(p => p.id === playerId);
+        const isAlive = myPlayer?.isAlive;
+
+        return (
+            <main className="container">
+                {/* Lobby */}
+                {gameState.state === 'LOBBY' && <Lobby code={code} />}
+
+                {/* Game Started */}
+                {gameState.state === 'WEREWOLF_PLAYING' && (
+                    <>
+                        {/* Role Card - Show to players during night (not admin/narrator) */}
+                        {myRole && !isAdmin && currentPhase === 'NIGHT' && <RoleCard roleData={myRole} />}
+
+                        {/* Night Phase */}
+                        {currentPhase === 'NIGHT' && !isAdmin && <NightScreen />}
+
+                        {/* Narrator Panel - Always visible to admin */}
+                        {isAdmin && <NarratorPanel code={code} />}
+
+                        {/* Voting Phase */}
+                        {currentPhase === 'VOTING' && !isAdmin && (
+                            <VotingPanel code={code} />
+                        )}
+
+                        {/* Hunter Revenge */}
+                        {currentPhase === 'HUNTER_REVENGE' && hunterRevengeActive && myPlayer?.role === 'Cazador' && (
+                            <HunterRevenge
+                                code={code}
+                                alivePlayers={gameState.players.filter(p => gameState.isAlive[p.id])}
+                            />
+                        )}
+
+                        {/* Death Screen - Show when player dies */}
+                        {!isAlive && votedOutData && <DeathScreen deathData={votedOutData} />}
+
+                        {/* Night Deaths - Show to all after night ends */}
+                        {nightDeaths && nightDeaths.length > 0 && (
+                            <DeathScreen deathData={nightDeaths[0]} />
+                        )}
+                    </>
+                )}
+
+                {/* Game Ended */}
+                {gameState.state === 'WEREWOLF_ENDED' && gameEndedData && (
+                    <WerewolfGameResult
+                        winner={gameEndedData.winner}
+                        survivors={gameEndedData.survivors}
+                        allPlayers={gameState.players}
+                    />
+                )}
+            </main>
+        );
+    }
+
+    // Impostor mode rendering (original)
     return (
         <main className="container">
             {gameState.state === 'LOBBY' && <Lobby code={code} />}
