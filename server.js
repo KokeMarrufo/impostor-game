@@ -282,9 +282,12 @@ Example format: ["word1", "word2", "word3"]`;
 
         socket.on('create_room', ({ name }, callback) => {
             const code = generateCode();
+            const adminPin = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit PIN
+
             rooms.set(code, {
                 code,
                 adminId: socket.id,
+                adminPin, // PIN for admin rejoin
                 players: [{
                     id: socket.id,
                     name,
@@ -334,7 +337,7 @@ Example format: ["word1", "word2", "word3"]`;
                 votes: {},
             });
             socket.join(code);
-            callback({ success: true, code });
+            callback({ success: true, code, adminPin }); // Return PIN to admin
             io.to(code).emit('room_update', rooms.get(code));
         });
 
@@ -373,7 +376,7 @@ Example format: ["word1", "word2", "word3"]`;
             });
         });
 
-        socket.on('rejoin_game', ({ code, targetPlayerId }, callback) => {
+        socket.on('rejoin_game', ({ code, targetPlayerId, adminPin }, callback) => {
             const room = rooms.get(code);
             if (!room) return callback({ success: false, error: 'Room not found' });
 
@@ -381,6 +384,17 @@ Example format: ["word1", "word2", "word3"]`;
             if (playerIndex === -1) return callback({ success: false, error: 'Player not found' });
 
             const player = room.players[playerIndex];
+
+            // Check if trying to rejoin as admin
+            const isAdminRejoin = targetPlayerId === room.adminId || player.id === room.adminId;
+
+            if (isAdminRejoin) {
+                // Validate admin PIN
+                if (!adminPin || adminPin !== room.adminPin) {
+                    return callback({ success: false, error: 'Invalid admin PIN' });
+                }
+            }
+
             if (player.connected) return callback({ success: false, error: 'Player already connected' });
 
             // Check if ALL players are currently disconnected (session abandonment)
@@ -396,6 +410,9 @@ Example format: ["word1", "word2", "word3"]`;
             if (allDisconnected) {
                 room.adminId = socket.id;
                 console.log(`Session abandoned - Admin granted to first reconnecting player ${socket.id} in room ${code}`);
+            } else if (isAdminRejoin) {
+                // Restore admin status
+                room.adminId = socket.id;
             }
 
             callback({ success: true, room });
@@ -584,10 +601,16 @@ Example format: ["word1", "word2", "word3"]`;
                     ? room.players.filter(p => p.role === 'Lobo' && p.id !== player.id).map(p => p.name)
                     : [];
 
+                // Get lover partner name if player is a lover
+                const loverName = player.isLover && player.linkedTo
+                    ? room.players.find(p => p.id === player.linkedTo)?.name
+                    : null;
+
                 io.to(player.id).emit('role_assigned', {
                     roleName: player.role,
                     description: getRoleDescription(player.role),
-                    allies
+                    allies,
+                    loverName // Name of lover partner (without role)
                 });
             });
 
@@ -611,6 +634,10 @@ Example format: ["word1", "word2", "word3"]`;
 
             room.cupidLinked = true;
             room.lovers = { player1Id, player2Id };
+
+            // Notify both lovers about their partner
+            io.to(p1.id).emit('lover_linked', { loverName: p2.name });
+            io.to(p2.id).emit('lover_linked', { loverName: p1.name });
 
             io.to(code).emit('room_update', room);
             callback({ success: true, player1Name: p1.name, player2Name: p2.name });

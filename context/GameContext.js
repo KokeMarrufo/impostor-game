@@ -52,6 +52,11 @@ export const GameProvider = ({ children }) => {
             setGameEndedData(data);
         });
 
+        s.on('lover_linked', ({ loverName }) => {
+            // Update myRole to include lover name
+            setMyRole(prev => prev ? { ...prev, loverName } : null);
+        });
+
         return () => {
             s.off('connect');
             s.off('room_update');
@@ -61,6 +66,7 @@ export const GameProvider = ({ children }) => {
             s.off('hunter_revenge_trigger');
             s.off('voted_out_werewolf');
             s.off('game_ended');
+            s.off('lover_linked');
         };
     }, []);
 
