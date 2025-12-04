@@ -8,6 +8,12 @@ export const GameProvider = ({ children }) => {
     const [gameState, setGameState] = useState(null);
     const [socket, setSocket] = useState(null);
     const [playerId, setPlayerId] = useState(null);
+    // Werewolf mode state
+    const [myRole, setMyRole] = useState(null);
+    const [nightDeaths, setNightDeaths] = useState([]);
+    const [hunterRevengeActive, setHunterRevengeActive] = useState(false);
+    const [votedOutData, setVotedOutData] = useState(null);
+    const [gameEndedData, setGameEndedData] = useState(null);
 
     useEffect(() => {
         const s = getSocket();
@@ -21,9 +27,40 @@ export const GameProvider = ({ children }) => {
             setGameState(state);
         });
 
+        // Werewolf mode listeners
+        s.on('role_assigned', (data) => {
+            setMyRole(data);
+        });
+
+        s.on('phase_changed', (data) => {
+            console.log('Phase changed:', data);
+        });
+
+        s.on('night_ended', (data) => {
+            setNightDeaths(data.deaths);
+        });
+
+        s.on('hunter_revenge_trigger', (data) => {
+            setHunterRevengeActive(true);
+        });
+
+        s.on('voted_out_werewolf', (data) => {
+            setVotedOutData(data);
+        });
+
+        s.on('game_ended', (data) => {
+            setGameEndedData(data);
+        });
+
         return () => {
             s.off('connect');
             s.off('room_update');
+            s.off('role_assigned');
+            s.off('phase_changed');
+            s.off('night_ended');
+            s.off('hunter_revenge_trigger');
+            s.off('voted_out_werewolf');
+            s.off('game_ended');
         };
     }, []);
 
@@ -89,8 +126,98 @@ export const GameProvider = ({ children }) => {
         socket.emit('start_random_game', { code });
     };
 
+    // ===== WEREWOLF MODE FUNCTIONS =====
+
+    const startWerewolfGame = (code) => {
+        socket.emit('start_werewolf_game', { code });
+    };
+
+    const cupidLink = (code, player1Id, player2Id) => {
+        return new Promise((resolve) => {
+            socket.emit('cupid_link', { code, player1Id, player2Id }, resolve);
+        });
+    };
+
+    const markNightVictim = (code, victimId) => {
+        return new Promise((resolve) => {
+            socket.emit('mark_night_victim', { code, victimId }, resolve);
+        });
+    };
+
+    const useLifePotion = (code) => {
+        return new Promise((resolve) => {
+            socket.emit('witch_use_life_potion', { code }, resolve);
+        });
+    };
+
+    const useDeathPotion = (code, targetId) => {
+        return new Promise((resolve) => {
+            socket.emit('witch_use_death_potion', { code, targetId }, resolve);
+        });
+    };
+
+    const endNight = (code) => {
+        socket.emit('end_night', { code });
+    };
+
+    const hunterShoots = (code, targetId) => {
+        return new Promise((resolve) => {
+            socket.emit('hunter_shoots', { code, targetId }, resolve);
+        });
+    };
+
+    const startWerewolfVoting = (code) => {
+        socket.emit('start_werewolf_voting', { code });
+    };
+
+    const castWerewolfVote = (code, targetId) => {
+        return new Promise((resolve) => {
+            socket.emit('cast_werewolf_vote', { code, targetId }, resolve);
+        });
+    };
+
+    const getAllRoles = (code) => {
+        return new Promise((resolve) => {
+            socket.emit('get_all_roles', { code }, resolve);
+        });
+    };
+
     return (
-        <GameContext.Provider value={{ gameState, createRoom, joinRoom, checkRoom, rejoinGame, updateSettings, generateAIWords, startGame, startRandomGame, startVoting, submitVote, nextRound, endGame, restartGame, socket, playerId }}>
+        <GameContext.Provider value={{
+            gameState,
+            createRoom,
+            joinRoom,
+            checkRoom,
+            rejoinGame,
+            updateSettings,
+            generateAIWords,
+            startGame,
+            startRandomGame,
+            startVoting,
+            submitVote,
+            nextRound,
+            endGame,
+            restartGame,
+            // Werewolf mode state
+            myRole,
+            nightDeaths,
+            hunterRevengeActive,
+            votedOutData,
+            gameEndedData,
+            // Werewolf mode functions
+            startWerewolfGame,
+            cupidLink,
+            markNightVictim,
+            useLifePotion,
+            useDeathPotion,
+            endNight,
+            hunterShoots,
+            startWerewolfVoting,
+            castWerewolfVote,
+            getAllRoles,
+            socket,
+            playerId
+        }}>
             {children}
         </GameContext.Provider>
     );

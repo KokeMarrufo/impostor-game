@@ -1,0 +1,94 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+.container.wolf {
+    background: #dc2626;
+}
+
+.container.villager {
+    background: #10b981;
+}
+
+.playerName {
+    font-size: clamp(3rem, 10vw, 8rem);
+    font-weight: 700;
+    color: white;
+    margin-bottom: 2rem;
+    text-align: center;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.roleEmoji {
+    font-size: clamp(6rem, 15vw, 12rem);
+    margin-bottom: 2rem;
+    animation: bounce 1s ease-in-out;
+}
+
+.roleName {
+    font-size: clamp(4rem, 12vw, 10rem);
+    font-weight: 900;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: center;
+    animation: fadeIn 0.7s ease-out;
+}
+
+.closeButton {
+    position: absolute;
+    bottom: 3rem;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: clamp(1.5rem, 4vw, 3rem);
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.closeButton:hover {
+    opacity: 1;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-20px);
+    }
+}
