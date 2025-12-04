@@ -133,29 +133,40 @@ export default function NarratorPanel({ code }) {
             <div className={styles.section}>
                 <h3>Jugadores Vivos ({alivePlayers.length})</h3>
                 <div className={styles.playerList}>
-                    {alivePlayers.map(player => (
-                        <div key={player.id} className={styles.playerCard}>
-                            <div className={styles.playerInfo}>
-                                <span className={styles.playerName}>
-                                    {player.name}
-                                    {player.isLover && <span className={styles.loverIcon}>❤️</span>}
-                                </span>
-                                <button
-                                    className={styles.viewRoleButton}
-                                    onClick={() => setSelectedPlayer(player)}
+                    {alivePlayers.map(player => {
+                        const loverPartner = player.isLover && player.linkedTo
+                            ? roles.find(p => p.id === player.linkedTo)
+                            : null;
+
+                        return (
+                            <div key={player.id} className={styles.playerCard}>
+                                <div className={styles.playerInfo}>
+                                    <span className={styles.playerName}>
+                                        {player.name}
+                                        {player.isLover && <span className={styles.loverIcon}>❤️</span>}
+                                    </span>
+                                    {loverPartner && (
+                                        <span style={{ fontSize: '0.75rem', color: '#ec4899', marginTop: '0.25rem' }}>
+                                            💕 Enamorado de {loverPartner.name}
+                                        </span>
+                                    )}
+                                    <button
+                                        className={styles.viewRoleButton}
+                                        onClick={() => setSelectedPlayer(player)}
+                                    >
+                                        Ver Rol
+                                    </button>
+                                </div>
+                                <div
+                                    className={styles.roleTag}
+                                    style={{ background: getRoleColor(player.role) }}
                                 >
-                                    Ver Rol
-                                </button>
+                                    <span>{getRoleEmoji(player.role)}</span>
+                                    <span>{player.role}</span>
+                                </div>
                             </div>
-                            <div
-                                className={styles.roleTag}
-                                style={{ background: getRoleColor(player.role) }}
-                            >
-                                <span>{getRoleEmoji(player.role)}</span>
-                                <span>{player.role}</span>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
 

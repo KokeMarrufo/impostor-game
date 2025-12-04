@@ -63,6 +63,18 @@ export default function RoleCard({ roleData }) {
                                     </ul>
                                 </div>
                             )}
+
+                            {roleData.loverName && (
+                                <div className={styles.allies} style={{ borderColor: '#ec4899' }}>
+                                    <p className={styles.alliesTitle} style={{ color: '#ec4899' }}>💕 Estás enamorado de:</p>
+                                    <p style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#ec4899' }}>
+                                        {roleData.loverName}
+                                    </p>
+                                    <p style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: '0.5rem' }}>
+                                        Si uno muere, el otro también muere
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

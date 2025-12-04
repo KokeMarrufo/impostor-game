@@ -69,7 +69,16 @@ export default function Room({ params }) {
     };
 
     const handleRejoin = async (targetId) => {
-        const { success, error } = await rejoinGame(code, targetId);
+        // Check if this is admin trying to rejoin
+        const isAdmin = roomInfo?.adminId === targetId;
+        let adminPin = null;
+
+        if (isAdmin) {
+            adminPin = prompt('Enter Admin PIN to rejoin as narrator:');
+            if (!adminPin) return; // User cancelled
+        }
+
+        const { success, error } = await rejoinGame(code, targetId, adminPin);
         if (!success) {
             alert(error);
             // Refresh room info
@@ -219,12 +228,12 @@ export default function Room({ params }) {
                             />
                         )}
 
-                        {/* Death Screen - Show when player dies */}
-                        {!isAlive && votedOutData && <DeathScreen deathData={votedOutData} />}
+                        {/* Death Screen - Show when player dies (not admin) */}
+                        {!isAdmin && !isAlive && votedOutData && <DeathScreen deathData={votedOutData} />}
 
-                        {/* Night Deaths - Show to all after night ends */}
-                        {nightDeaths && nightDeaths.length > 0 && (
-                            <DeathScreen deathData={nightDeaths[0]} />
+                        {/* Night Deaths - Show all deaths after night ends (not admin) */}
+                        {!isAdmin && nightDeaths && nightDeaths.length > 0 && (
+                            <DeathScreen deathData={nightDeaths} />
                         )}
                     </>
                 )}

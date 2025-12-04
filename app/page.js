@@ -13,9 +13,12 @@ export default function Home() {
   const handleCreate = async () => {
     if (!name.trim()) return alert('Please enter your name');
     setLoading(true);
-    const { success, code } = await createRoom(name);
+    const { success, code, adminPin } = await createRoom(name);
     setLoading(false);
-    if (success) router.push(`/room/${code}`);
+    if (success) {
+      alert(`Room created!\n\nRoom Code: ${code}\nAdmin PIN: ${adminPin}\n\n⚠️ Save this PIN! You'll need it to rejoin as admin if you refresh.`);
+      router.push(`/room/${code}`);
+    }
   };
 
   const handleJoin = async () => {
