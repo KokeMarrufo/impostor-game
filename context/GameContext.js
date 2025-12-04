@@ -88,9 +88,15 @@ export const GameProvider = ({ children }) => {
         });
     };
 
-    const rejoinGame = (code, targetPlayerId) => {
+    const rejoinGame = (code, targetPlayerId, adminPin) => {
         return new Promise((resolve) => {
-            socket.emit('rejoin_game', { code, targetPlayerId }, resolve);
+            socket.emit('rejoin_game', { code, targetPlayerId, adminPin }, (result) => {
+                if (result.success) {
+                    // Update playerId to new socket.id after rejoin
+                    setPlayerId(socket.id);
+                }
+                resolve(result);
+            });
         });
     };
 

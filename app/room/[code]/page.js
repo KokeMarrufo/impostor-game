@@ -206,6 +206,30 @@ export default function Room({ params }) {
                 {/* Game Started */}
                 {gameState.state === 'WEREWOLF_PLAYING' && (
                     <>
+                        {/* Phase Indicator - Show to all players */}
+                        {!isAdmin && (
+                            <div style={{
+                                position: 'fixed',
+                                top: '1rem',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                background: 'rgba(0,0,0,0.9)',
+                                padding: '0.75rem 1.5rem',
+                                borderRadius: '999px',
+                                border: '2px solid',
+                                borderColor: gameState.currentPhase === 'NIGHT' ? '#1e293b' : gameState.currentPhase === 'VOTING' ? '#f59e0b' : '#10b981',
+                                zIndex: 100,
+                                fontSize: '0.875rem',
+                                fontWeight: '600',
+                                color: 'white'
+                            }}>
+                                {gameState.currentPhase === 'NIGHT' && '🌙 Noche'}
+                                {gameState.currentPhase === 'DAY' && '☀️ Día'}
+                                {gameState.currentPhase === 'VOTING' && '🗳️ Votación'}
+                                {gameState.currentPhase === 'HUNTER_REVENGE' && '🏹 Venganza del Cazador'}
+                            </div>
+                        )}
+
                         {/* Role Card - Show to players during night (not admin/narrator) */}
                         {myRole && !isAdmin && currentPhase === 'NIGHT' && <RoleCard roleData={myRole} />}
 

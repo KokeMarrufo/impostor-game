@@ -8,7 +8,11 @@ import WitchPanel from './WitchPanel';
 import WolfVictimPanel from './WolfVictimPanel';
 
 export default function NarratorPanel({ code }) {
-    const { gameState, getAllRoles, endNight, startWerewolfVoting, markNightVictim } = useGame();
+    const { gameState, getAllRoles, endNight, startWerewolfVoting, markNightVictim, socket } = useGame();
+
+    const startNight = () => {
+        socket.emit('start_night', { code });
+    };
     const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -18,7 +22,7 @@ export default function NarratorPanel({ code }) {
 
     useEffect(() => {
         loadRoles();
-    }, []);
+    }, [gameState]); // Reload when gameState changes
 
     const loadRoles = async () => {
         setLoading(true);
@@ -96,9 +100,13 @@ export default function NarratorPanel({ code }) {
                     className="btn"
                     onClick={() => setShowCupidPanel(true)}
                     disabled={gameState.cupidLinked || gameState.nightNumber !== 1}
-                    style={{ background: '#ec4899', color: 'white' }}
+                    style={{
+                        background: gameState.cupidLinked ? '#64748b' : '#ec4899',
+                        color: 'white',
+                        opacity: gameState.cupidLinked ? 0.5 : 1
+                    }}
                 >
-                    💘 Llamar a Cupido
+                    💘 Llamar a Cupido {gameState.cupidLinked && '✓'}
                 </button>
                 <button
                     className="btn"
@@ -110,22 +118,37 @@ export default function NarratorPanel({ code }) {
                 <button
                     className="btn"
                     onClick={() => setShowWitchPanel(true)}
-                    style={{ background: '#a855f7', color: 'white' }}
+                    disabled={gameState.witchPotions?.lifePotionUsed && gameState.witchPotions?.deathPotionUsed}
+                    style={{
+                        background: '#a855f7',
+                        color: 'white',
+                        opacity: (gameState.witchPotions?.lifePotionUsed && gameState.witchPotions?.deathPotionUsed) ? 0.5 : 1
+                    }}
                 >
-                    🧙‍♀️ Llamar a Bruja
+                    🧙‍♀️ Llamar a Bruja {(gameState.witchPotions?.lifePotionUsed && gameState.witchPotions?.deathPotionUsed) && '✓'}
                 </button>
                 <button
                     className="btn btn-primary"
                     onClick={() => endNight(code)}
+                    disabled={gameState.currentPhase !== 'NIGHT'}
                 >
                     ☀️ Terminar Noche
                 </button>
                 <button
                     className="btn"
                     onClick={() => startWerewolfVoting(code)}
+                    disabled={gameState.currentPhase !== 'DAY'}
                     style={{ background: '#f59e0b', color: 'white' }}
                 >
                     🗳️ Iniciar Votación
+                </button>
+                <button
+                    className="btn"
+                    onClick={startNight}
+                    disabled={gameState.currentPhase === 'NIGHT' || gameState.currentPhase === 'VOTING'}
+                    style={{ background: '#1e293b', color: 'white' }}
+                >
+                    🌙 Iniciar Noche
                 </button>
             </div>
 
