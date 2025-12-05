@@ -676,6 +676,17 @@ Example format: ["word1", "word2", "word3"]`;
             io.to(code).emit('room_update', room);
         });
 
+        socket.on('revive_player', ({ code, playerId }) => {
+            const room = rooms.get(code);
+            if (!room || room.adminId !== socket.id) return;
+
+            // Revive the player
+            room.isAlive[playerId] = true;
+
+            console.log(`Player ${playerId} revived by admin in room ${code}`);
+            io.to(code).emit('room_update', room);
+        });
+
         socket.on('mark_night_victim', ({ code, victimId }, callback) => {
             const room = rooms.get(code);
             if (!room || room.adminId !== socket.id) return callback({ success: false });

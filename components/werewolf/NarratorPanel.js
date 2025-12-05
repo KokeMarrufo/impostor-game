@@ -50,7 +50,7 @@ export default function NarratorPanel({ code }) {
     }
 
     const alivePlayers = roles.filter(p => p.isAlive);
-    const deadPlayers = roles.filter(p => !p.isAlive);
+    const deadPlayers = roles.filter(p => !p.isAlive && p.id !== socket?.id);
     const aliveWolves = alivePlayers.filter(p => p.role === 'Lobo').length;
     const aliveVillagers = alivePlayers.filter(p => p.role !== 'Lobo').length;
 
@@ -260,6 +260,23 @@ export default function NarratorPanel({ code }) {
                                         <span>{getRoleEmoji(player.role)}</span>
                                         <span>{player.role}</span>
                                     </div>
+                                    <button
+                                        className="btn"
+                                        onClick={() => {
+                                            if (socket && confirm(`¿Revivir a ${player.name}?`)) {
+                                                socket.emit('revive_player', { code, playerId: player.id });
+                                            }
+                                        }}
+                                        style={{
+                                            marginTop: '0.5rem',
+                                            background: '#10b981',
+                                            color: 'white',
+                                            fontSize: '0.75rem',
+                                            padding: '0.25rem 0.5rem'
+                                        }}
+                                    >
+                                        ♻️ Revivir
+                                    </button>
                                 </div>
                             </div>
                         ))}
