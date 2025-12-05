@@ -44,6 +44,12 @@ export const GameProvider = ({ children }) => {
             setHunterRevengeActive(true);
         });
 
+        s.on('hunter_shot', (data) => {
+            // Hunter shot someone - show their death
+            setHunterRevengeActive(false); // Deactivate hunter revenge
+            setNightDeaths(data.deaths); // Show the death(s)
+        });
+
         s.on('voted_out_werewolf', (data) => {
             setVotedOutData(data);
         });
@@ -64,6 +70,7 @@ export const GameProvider = ({ children }) => {
             s.off('phase_changed');
             s.off('night_ended');
             s.off('hunter_revenge_trigger');
+            s.off('hunter_shot');
             s.off('voted_out_werewolf');
             s.off('game_ended');
             s.off('lover_linked');

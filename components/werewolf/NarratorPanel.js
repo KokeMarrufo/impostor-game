@@ -19,6 +19,13 @@ export default function NarratorPanel({ code }) {
     const [showCupidPanel, setShowCupidPanel] = useState(false);
     const [showWitchPanel, setShowWitchPanel] = useState(false);
     const [showWolfVictimPanel, setShowWolfVictimPanel] = useState(false);
+    const [showSheriffPanel, setShowSheriffPanel] = useState(false);
+
+    const setSheriff = (playerId) => {
+        if (!socket) return;
+        socket.emit('set_sheriff', { code, playerId });
+        setShowSheriffPanel(false);
+    };
 
     useEffect(() => {
         loadRoles();
@@ -73,9 +80,23 @@ export default function NarratorPanel({ code }) {
 
     return (
         <div className={styles.container}>
+            {/* Header */}
             <div className={styles.header}>
                 <h2>🎭 Panel del Narrador</h2>
-                <p className={styles.subtitle}>Solo tú puedes ver esta información</p>
+                <p>Fase: {gameState.currentPhase || 'SETUP'} | Noche #{gameState.nightNumber || 0}</p>
+                <button
+                    className="btn"
+                    onClick={loadRoles}
+                    style={{
+                        marginTop: '0.5rem',
+                        background: '#64748b',
+                        color: 'white',
+                        fontSize: '0.875rem',
+                        padding: '0.5rem 1rem'
+                    }}
+                >
+                    🔄 Refrescar Vista
+                </button>
             </div>
 
             {/* Game Stats */}
@@ -150,6 +171,16 @@ export default function NarratorPanel({ code }) {
                 >
                     🌙 Iniciar Noche
                 </button>
+                <button
+                    className="btn"
+                    onClick={() => setShowSheriffPanel(true)}
+                    style={{
+                        background: gameState.werewolfConfig?.sheriffId ? '#10b981' : '#6366f1',
+                        color: 'white'
+                    }}
+                >
+                    🎖️ {gameState.werewolfConfig?.sheriffId ? 'Cambiar' : 'Seleccionar'} Sheriff
+                </button>
             </div>
 
             {/* Alive Players */}
@@ -167,6 +198,15 @@ export default function NarratorPanel({ code }) {
                                     <span className={styles.playerName}>
                                         {player.name}
                                         {player.isLover && <span className={styles.loverIcon}>❤️</span>}
+                                        {gameState.werewolfConfig?.sheriffId === player.id && (
+                                            <span style={{
+                                                marginLeft: '0.5rem',
+                                                fontSize: '1.2rem',
+                                                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                                            }}>
+                                                🎖️
+                                            </span>
+                                        )}
                                     </span>
                                     {loverPartner && (
                                         <span style={{ fontSize: '0.75rem', color: '#ec4899', marginTop: '0.25rem' }}>
@@ -201,7 +241,18 @@ export default function NarratorPanel({ code }) {
                         {deadPlayers.map(player => (
                             <div key={player.id} className={`${styles.playerCard} ${styles.dead}`}>
                                 <div className={styles.playerInfo}>
-                                    <span className={styles.playerName}>{player.name}</span>
+                                    <span className={styles.playerName}>
+                                        {player.name}
+                                        {gameState.werewolfConfig?.sheriffId === player.id && (
+                                            <span style={{
+                                                marginLeft: '0.5rem',
+                                                fontSize: '1.2rem',
+                                                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                                            }}>
+                                                🎖️
+                                            </span>
+                                        )}
+                                    </span>
                                     <div
                                         className={styles.roleTag}
                                         style={{ background: getRoleColor(player.role) }}
@@ -247,6 +298,40 @@ export default function NarratorPanel({ code }) {
                     players={alivePlayers}
                     onClose={() => setShowWolfVictimPanel(false)}
                 />
+            )}
+
+            {showSheriffPanel && (
+                <div className={styles.modal}>
+                    <div className={styles.modalContent}>
+                        <h3>🎖️ Seleccionar Sheriff</h3>
+                        <p style={{ marginBottom: '1rem', opacity: 0.8 }}>
+                            El Sheriff rompe empates en votaciones
+                        </p>
+                        <div className={styles.playerList}>
+                            {alivePlayers.map(player => (
+                                <button
+                                    key={player.id}
+                                    className="btn"
+                                    onClick={() => setSheriff(player.id)}
+                                    style={{
+                                        background: gameState.werewolfConfig?.sheriffId === player.id ? '#10b981' : '#6366f1',
+                                        color: 'white',
+                                        marginBottom: '0.5rem'
+                                    }}
+                                >
+                                    {player.name} {gameState.werewolfConfig?.sheriffId === player.id && '✓'}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            className="btn"
+                            onClick={() => setShowSheriffPanel(false)}
+                            style={{ marginTop: '1rem', background: '#64748b', color: 'white' }}
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );
