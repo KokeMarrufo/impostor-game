@@ -199,7 +199,8 @@ export default function Room({ params }) {
     if (isWerewolfMode) {
         const currentPhase = gameState.currentPhase;
         const myPlayer = gameState.players?.find(p => p.id === playerId);
-        const isAlive = myPlayer?.isAlive;
+        // Use gameState.isAlive map for Werewolf mode
+        const isAlive = gameState.isAlive ? gameState.isAlive[playerId] : true;
 
         return (
             <main className="container">
