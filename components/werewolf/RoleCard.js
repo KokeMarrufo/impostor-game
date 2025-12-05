@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import styles from './RoleCard.module.css';
 
-export default function RoleCard({ roleData }) {
+export default function RoleCard({ roleData, isSheriff }) {
     const [isRevealed, setIsRevealed] = useState(false);
 
     if (!roleData) return null;
@@ -42,7 +42,9 @@ export default function RoleCard({ roleData }) {
                         {/* Card Back */}
                         <div className={styles.cardBack}>
                             <div className={styles.cardBackContent}>
-                                <span className={styles.questionMark}>?</span>
+                                <span className={styles.questionMark}>
+                                    {isSheriff ? '🎖️' : '?'}
+                                </span>
                                 <p>Presiona para revelar</p>
                             </div>
                         </div>

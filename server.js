@@ -288,6 +288,7 @@ Example format: ["word1", "word2", "word3"]`;
                 code,
                 adminId: socket.id,
                 adminPin, // PIN for admin rejoin
+                adminPlayerName: name, // Store admin's player name for rejoin identification
                 players: [{
                     id: socket.id,
                     name,
@@ -372,7 +373,8 @@ Example format: ["word1", "word2", "word3"]`;
             callback({
                 exists: true,
                 state: room.state,
-                players: room.players
+                players: room.players,
+                adminPlayerName: room.adminPlayerName // Include admin player name for rejoin identification
             });
         });
 
@@ -385,8 +387,8 @@ Example format: ["word1", "word2", "word3"]`;
 
             const player = room.players[playerIndex];
 
-            // Check if trying to rejoin as admin
-            const isAdminRejoin = targetPlayerId === room.adminId || player.id === room.adminId;
+            // Check if trying to rejoin as admin by comparing player name
+            const isAdminRejoin = player.name === room.adminPlayerName;
 
             if (isAdminRejoin) {
                 // Validate admin PIN
@@ -406,13 +408,36 @@ Example format: ["word1", "word2", "word3"]`;
 
             socket.join(code);
 
-            // If session was abandoned, grant admin to first reconnecting player
+            // Admin reassignment logic
             if (allDisconnected) {
-                room.adminId = socket.id;
-                console.log(`Session abandoned - Admin granted to first reconnecting player ${socket.id} in room ${code}`);
+                // In Lobo mode, NEVER reassign admin - game is ruined without original narrator
+                // In Impostor mode, allow admin reassignment for abandoned sessions
+                if (room.gameMode === 'IMPOSTOR') {
+                    room.adminId = socket.id;
+                    console.log(`Session abandoned - Admin granted to first reconnecting player ${socket.id} in room ${code}`);
+                }
+                // In Lobo mode, don't reassign admin even if abandoned
             } else if (isAdminRejoin) {
-                // Restore admin status
+                // Restore admin status (PIN already validated above)
                 room.adminId = socket.id;
+            }
+
+            // If rejoining during Werewolf game, resend role data
+            if (room.gameMode === 'LOBO' && room.state === 'WEREWOLF_PLAYING' && player.role && !isAdminRejoin) {
+                const allies = player.role === 'Lobo'
+                    ? room.players.filter(p => p.role === 'Lobo' && p.id !== player.id).map(p => p.name)
+                    : [];
+
+                const loverName = player.isLover && player.linkedTo
+                    ? room.players.find(p => p.id === player.linkedTo)?.name
+                    : null;
+
+                io.to(socket.id).emit('role_assigned', {
+                    roleName: player.role,
+                    description: getRoleDescription(player.role),
+                    allies,
+                    loverName
+                });
             }
 
             callback({ success: true, room });
@@ -643,6 +668,14 @@ Example format: ["word1", "word2", "word3"]`;
             callback({ success: true, player1Name: p1.name, player2Name: p2.name });
         });
 
+        socket.on('set_sheriff', ({ code, playerId }) => {
+            const room = rooms.get(code);
+            if (!room || room.adminId !== socket.id) return;
+
+            room.werewolfConfig.sheriffId = playerId;
+            io.to(code).emit('room_update', room);
+        });
+
         socket.on('mark_night_victim', ({ code, victimId }, callback) => {
             const room = rooms.get(code);
             if (!room || room.adminId !== socket.id) return callback({ success: false });
@@ -709,6 +742,7 @@ Example format: ["word1", "word2", "word3"]`;
                 const hunter = room.players.find(p => p.id === deadHunters[0].playerId);
 
                 io.to(code).emit('night_ended', { deaths: allDeaths });
+                io.to(code).emit('phase_changed', { phase: 'HUNTER_REVENGE', message: '🏹 El Cazador busca venganza...' });
                 io.to(hunter.id).emit('hunter_revenge_trigger', {
                     alivePlayers: room.players.filter(p => room.isAlive[p.id])
                 });
@@ -766,6 +800,18 @@ Example format: ["word1", "word2", "word3"]`;
 
             io.to(code).emit('room_update', room);
             callback({ success: true });
+        });
+
+        socket.on('start_night', ({ code }) => {
+            const room = rooms.get(code);
+            if (!room || room.adminId !== socket.id) return;
+
+            room.currentPhase = 'NIGHT';
+            room.nightNumber++;
+            room.votes = {};
+
+            io.to(code).emit('phase_changed', { phase: 'NIGHT', message: '🌙 Es de noche...' });
+            io.to(code).emit('room_update', room);
         });
 
         socket.on('start_werewolf_voting', ({ code }) => {
@@ -837,6 +883,7 @@ Example format: ["word1", "word2", "word3"]`;
 
                 if (deadHunter) {
                     room.currentPhase = 'HUNTER_REVENGE';
+                    io.to(code).emit('phase_changed', { phase: 'HUNTER_REVENGE', message: '🏹 El Cazador busca venganza...' });
                     io.to(deadHunter.playerId).emit('hunter_revenge_trigger', {
                         alivePlayers: room.players.filter(p => room.isAlive[p.id])
                     });
@@ -909,13 +956,16 @@ Example format: ["word1", "word2", "word3"]`;
                         room.players[index].connected = false;
 
                         // Transfer admin if disconnected player was admin
-                        if (wasAdmin) {
+                        // BUT ONLY in Impostor mode - in Lobo mode, admin must rejoin with PIN
+                        if (wasAdmin && room.gameMode === 'IMPOSTOR') {
                             const transferred = transferAdminToNextEligible(room);
                             if (transferred) {
                                 console.log(`Admin transferred from ${socket.id} to ${room.adminId} in room ${code}`);
                             } else {
                                 console.log(`No eligible players to transfer admin in room ${code}`);
                             }
+                        } else if (wasAdmin && room.gameMode === 'LOBO') {
+                            console.log(`Admin disconnected in Lobo mode - must rejoin with PIN in room ${code}`);
                         }
 
                         io.to(code).emit('room_update', room);

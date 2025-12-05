@@ -69,8 +69,11 @@ export default function Room({ params }) {
     };
 
     const handleRejoin = async (targetId) => {
-        // Check if this is admin trying to rejoin
-        const isAdmin = roomInfo?.adminId === targetId;
+        // Find the player being rejoined
+        const targetPlayer = roomInfo?.players.find(p => p.id === targetId);
+
+        // Check if this player is the admin by comparing names
+        const isAdmin = targetPlayer && roomInfo?.adminPlayerName && targetPlayer.name === roomInfo.adminPlayerName;
         let adminPin = null;
 
         if (isAdmin) {
@@ -206,8 +209,37 @@ export default function Room({ params }) {
                 {/* Game Started */}
                 {gameState.state === 'WEREWOLF_PLAYING' && (
                     <>
+                        {/* Phase Indicator - Show to all players */}
+                        {!isAdmin && (
+                            <div style={{
+                                position: 'fixed',
+                                top: '1rem',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                background: 'rgba(0,0,0,0.9)',
+                                padding: '0.75rem 1.5rem',
+                                borderRadius: '999px',
+                                border: '2px solid',
+                                borderColor: gameState.currentPhase === 'NIGHT' ? '#1e293b' : gameState.currentPhase === 'VOTING' ? '#f59e0b' : '#10b981',
+                                zIndex: 100,
+                                fontSize: '0.875rem',
+                                fontWeight: '600',
+                                color: 'white'
+                            }}>
+                                {gameState.currentPhase === 'NIGHT' && '🌙 Noche'}
+                                {gameState.currentPhase === 'DAY' && '☀️ Día'}
+                                {gameState.currentPhase === 'VOTING' && '🗳️ Votación'}
+                                {gameState.currentPhase === 'HUNTER_REVENGE' && '🏹 Venganza del Cazador'}
+                            </div>
+                        )}
+
                         {/* Role Card - Show to players during night (not admin/narrator) */}
-                        {myRole && !isAdmin && currentPhase === 'NIGHT' && <RoleCard roleData={myRole} />}
+                        {myRole && !isAdmin && currentPhase === 'NIGHT' && (
+                            <RoleCard
+                                roleData={myRole}
+                                isSheriff={gameState.werewolfConfig?.sheriffId === playerId}
+                            />
+                        )}
 
                         {/* Night Phase */}
                         {currentPhase === 'NIGHT' && !isAdmin && <NightScreen />}
@@ -220,19 +252,19 @@ export default function Room({ params }) {
                             <VotingPanel code={code} />
                         )}
 
-                        {/* Hunter Revenge */}
-                        {currentPhase === 'HUNTER_REVENGE' && hunterRevengeActive && myPlayer?.role === 'Cazador' && (
+                        {/* Hunter Revenge - Only hunter receives this event */}
+                        {hunterRevengeActive && (
                             <HunterRevenge
                                 code={code}
                                 alivePlayers={gameState.players.filter(p => gameState.isAlive[p.id])}
                             />
                         )}
 
-                        {/* Death Screen - Show when player dies (not admin) */}
-                        {!isAdmin && !isAlive && votedOutData && <DeathScreen deathData={votedOutData} />}
+                        {/* Death Screen - Show when player dies (not admin, not during hunter revenge or voting) */}
+                        {!isAdmin && !isAlive && votedOutData && !hunterRevengeActive && currentPhase !== 'VOTING' && <DeathScreen deathData={votedOutData} />}
 
-                        {/* Night Deaths - Show all deaths after night ends (not admin) */}
-                        {!isAdmin && nightDeaths && nightDeaths.length > 0 && (
+                        {/* Night Deaths - Show all deaths after night ends (not admin, not during hunter revenge or voting) */}
+                        {!isAdmin && nightDeaths && nightDeaths.length > 0 && !hunterRevengeActive && currentPhase !== 'VOTING' && (
                             <DeathScreen deathData={nightDeaths} />
                         )}
                     </>
